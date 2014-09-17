@@ -145,6 +145,7 @@ class Stump
   Stump();
   virtual ~Stump();
 
+  void clearBuffers();
   MessageBuffer *createBuffer(std::ostream &os, int bufferSize);
   MessageBuffer *createBuffer(std::ostream &os, std::string bufferName, int bufferSize);
   MessageBuffer *createBuffer(std::string file, int bufferSize);
@@ -152,6 +153,7 @@ class Stump
   /* Create buffer con callback */
 
   void log(std::string msg, std::string logType="");
+  void clearOutputs();
   void addOutput(std::string messageType, std::string typeLabel, MessageFormat messageFormat, int bufferSize=20);
   /* void addOutput(std::string messageType, std::string typeLabel, OutputType output, std::string file, MessageFormat messageFormat, int bufferSize=20); */
   /* void addOutput(std::string messageType, std::string typeLabel, OutputType output, TCallbackType1 cbt1, MessageFormat messageFormat, int bufferSize=20); */
@@ -182,7 +184,7 @@ class Stump
 
   static Stump& endl(Stump& stump)
   {
-    stump.log(stump.currentLog.str());
+    stump.log(stump.currentLog.str(), stump.workingMessageType);
     stump.currentLog.str("");
     __MUTEX_UNLOCK(stump.ostreamMutex);
     return stump;
@@ -206,8 +208,24 @@ class Stump
       return *this;
     }
 
-  void internalMessages(bool enable);
+  struct logtype
+  {
+  logtype(std::string ltype): ltype(ltype)
+    {
+    }
+    Stump& operator()(Stump& out)
+    {
+      out.workingMessageType=ltype;
+      return out;
+    }
 
+    std::string ltype;
+  };
+  void internalMessages(bool enable);
+  void setWorkingType(std::string wtype)
+  {
+    this->workingMessageType=wtype;
+  }
  protected:
   void initialize();
 
@@ -253,7 +271,8 @@ class Stump
   std::string defaultRepeatLogFormat;
   int defaultBufferSize;
   bool _internalMessages;
-  std::string defaultMessageType;
+  std::string defaultMessageType; /* Used with log() */
+  std::string workingMessageType; /* Used with log << */
 
   /* Tools */
   static std::string itoa(int val);

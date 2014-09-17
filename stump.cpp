@@ -11,13 +11,13 @@
 * @author Gaspar Fernández <blakeyed@totaki.com>
 * @version
 * @date 12 abr 2014
-* Historial de cambios:
-*
-*
-*
-*
-*
-*
+* To-do:
+*  - Clear one sigle output
+*  - Clear_buffer must check if the buffers are not being used
+*  - Clear_buffers must free buffers
+*  - Clear one single user
+*  - Check working message type existence when using manipulator logtype
+*  - Make logtype operator work
 *
 *************************************************************/
 
@@ -37,6 +37,7 @@ unsigned Stump::bufferId = 0;
 Stump::Stump()
 {
   _internalMessages=true;
+  workingMessageType="";
   __MUTEX_INIT(ostreamMutex);
   // __MUTEX_INIT(writingMutex);
   initialize();
@@ -67,6 +68,10 @@ void Stump::internalMessage(std::string msg)
     return;
 
   std::cerr << "[STUMP] "<<msg<<std::endl;
+}
+void Stump::clearBuffers()
+{
+  availableBuffers.clear();
 }
 
 Stump::MessageBuffer *Stump::createBuffer(std::ostream &os, int bufferSize)
@@ -148,6 +153,11 @@ void Stump::addOutput(std::string messageType, std::string typeLabel, MessageFor
 //     addOutput(messageType, typeLabel, output, messageFormat, "", cbt1, 0, buffer);
 // }
 
+void Stump::clearOutputs()
+{
+  messageTypes.clear();
+}
+
 void Stump::addOutput(std::string messageType, std::string typeLabel, MessageFormat messageFormat, int bufferSize, MessageBuffer* buffer)
 {
   if (buffer==NULL)
@@ -209,7 +219,7 @@ void Stump::log(std :: string msg, std::string logType)
     logType=this->defaultMessageType;
 
   if (messageTypes.size() == 0)
-    return;
+	return;
 
   std::map<std::string, std::vector<MessageOutput*> >::iterator mtype = messageTypes.find(logType);
   if (mtype==messageTypes.end())
