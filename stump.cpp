@@ -69,9 +69,28 @@ void Stump::internalMessage(std::string msg)
 
   std::cerr << "[STUMP] "<<msg<<std::endl;
 }
+
 void Stump::clearBuffers()
 {
   availableBuffers.clear();
+}
+
+void Stump::disableAll()
+{
+  for (std::map<std::string, std::vector<MessageOutput*> >::iterator i = messageTypes.begin(); i != messageTypes.end(); ++i)
+    {
+      for (std::vector<MessageOutput*>::iterator j = i->second.begin(); j != i->second.end(); ++j)
+	(*j)->enabled=false;
+    }
+}
+
+void Stump::enableAll()
+{
+  for (std::map<std::string, std::vector<MessageOutput*> >::iterator i = messageTypes.begin(); i != messageTypes.end(); ++i)
+    {
+      for (std::vector<MessageOutput*>::iterator j = i->second.begin(); j != i->second.end(); ++j)
+	(*j)->enabled=true;
+    }
 }
 
 Stump::MessageBuffer *Stump::createBuffer(std::ostream &os, int bufferSize)

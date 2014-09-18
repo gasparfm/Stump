@@ -146,6 +146,8 @@ class Stump
   virtual ~Stump();
 
   void clearBuffers();
+  void disableAll();
+  void enableAll();
   MessageBuffer *createBuffer(std::ostream &os, int bufferSize);
   MessageBuffer *createBuffer(std::ostream &os, std::string bufferName, int bufferSize);
   MessageBuffer *createBuffer(std::string file, int bufferSize);
@@ -225,6 +227,25 @@ class Stump
   void setWorkingType(std::string wtype)
   {
     this->workingMessageType=wtype;
+  }
+
+  int totalMessageTypes()
+  {
+    return messageTypes.size();
+  }
+
+  int enabledOutputs()
+  {
+    int count=0;
+    for (std::map<std::string, std::vector<MessageOutput*> >::iterator i=messageTypes.begin(); i!=messageTypes.end(); ++i)
+      {
+	for (std::vector<MessageOutput*>::iterator j=i->second.begin(); j!=i->second.end(); ++j)
+	  {
+	    if ((*j)->enabled)
+	      count++;
+	  }
+      }
+    return count;
   }
  protected:
   void initialize();
