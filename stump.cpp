@@ -234,6 +234,9 @@ void Stump::initialize()
 
 void Stump::log(std :: string msg, std::string logType)
 {
+  if (!msg.length())
+    return;
+
   if (logType=="")
     logType=this->defaultMessageType;
 
