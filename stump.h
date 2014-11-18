@@ -157,14 +157,11 @@ class Stump
   void log(std::string msg, std::string logType="");
   void clearOutputs();
   void addOutput(std::string messageType, std::string typeLabel, MessageFormat messageFormat, int bufferSize=20);
-  /* void addOutput(std::string messageType, std::string typeLabel, OutputType output, std::string file, MessageFormat messageFormat, int bufferSize=20); */
-  /* void addOutput(std::string messageType, std::string typeLabel, OutputType output, TCallbackType1 cbt1, MessageFormat messageFormat, int bufferSize=20); */
 
   /* addOutput reusing buffers */
   void addOutput(std::string messageType, std::string typeLabel, MessageFormat messageFormat, std::string bufferName);
-  /* void addOutput(std::string messageType, std::string typeLabel, OutputType output, std::string file, MessageFormat messageFormat, std::string bufferName); */
-  /* void addOutput(std::string messageType, std::string typeLabel, OutputType output, TCallbackType1 cbt1, MessageFormat messageFormat, std::string bufferName); */
-  /* Interfaz con ostream */
+
+  /* ostream interface */
   template <typename T>
     Stump& operator<<(const T& x)
     {
@@ -212,17 +209,26 @@ class Stump
 
   struct logtype
   {
+  public:
   logtype(std::string ltype): ltype(ltype)
     {
     }
-    Stump& operator()(Stump& out)
+
+    virtual Stump& operator()(Stump& out)
     {
       out.workingMessageType=ltype;
       return out;
     }
 
+  protected:
     std::string ltype;
   };
+
+  friend Stump& operator<<(Stump& out, logtype lt)
+  {
+    return lt(out);
+  }
+
   void internalMessages(bool enable);
   void setWorkingType(std::string wtype)
   {

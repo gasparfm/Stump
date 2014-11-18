@@ -2,10 +2,7 @@
 *************************************************************
 * @file stump.cpp
 * @brief Breve descripción
-* Pequeña documentación del archivo
-*
-*
-*
+* Another logging tool for our C++ projects
 *
 *
 * @author Gaspar Fernández <blakeyed@totaki.com>
@@ -17,7 +14,6 @@
 *  - Clear_buffers must free buffers
 *  - Clear one single user
 *  - Check working message type existence when using manipulator logtype
-*  - Make logtype operator work
 *
 *************************************************************/
 
@@ -52,7 +48,7 @@ Stump::~Stump()
 	  outputBuffer(**j, true);
 	  delete *j;
 	}
-      // To-do: recorrer buffers y borrar estructuras
+      // To-do: delete pending structures
     }
   internalMessage("Destroying...");
 }
@@ -135,16 +131,6 @@ void Stump::addOutput(std::string messageType, std::string typeLabel, MessageFor
   addOutput(messageType, typeLabel, messageFormat, bufferSize);
 }
 
-// void Stump::addOutput(std::string messageType, std::string typeLabel, Stump::OutputType output, std::string file, MessageFormat messageFormat, int bufferSize)
-// {
-//   addOutput(messageType, typeLabel, output, messageFormat, file, NULL, bufferSize);
-// }
-
-// void Stump::addOutput(std::string messageType, std::string typeLabel, Stump::OutputType output, TCallbackType1 cbt1, MessageFormat messageFormat, int bufferSize)
-// {
-//   addOutput(messageType, typeLabel, output, messageFormat, "", cbt1, bufferSize);
-// }
-
 void Stump::addOutput(std::string messageType, std::string typeLabel, MessageFormat messageFormat, std::string bufferName)
 {
   MessageBuffer *buffer = findMessageBuffer(bufferName);
@@ -153,24 +139,6 @@ void Stump::addOutput(std::string messageType, std::string typeLabel, MessageFor
   else
     addOutput(messageType, typeLabel, messageFormat, 0, buffer);
 }
-
-// void Stump::addOutput(std::string messageType, std::string typeLabel, Stump::OutputType output, std::string file, MessageFormat messageFormat, std::string bufferName)
-// {
-//   MessageBuffer *buffer = findMessageBuffer(bufferName);
-//   if (buffer==NULL)
-//     this->internalMessage("Could not find buffer "+bufferName);
-//   else
-//     addOutput(messageType, typeLabel, output, messageFormat, file, NULL, 0, buffer);
-// }
-
-// void Stump::addOutput(std::string messageType, std::string typeLabel, Stump::OutputType output, TCallbackType1 cbt1, MessageFormat messageFormat, std::string bufferName)
-// {
-//   MessageBuffer *buffer = findMessageBuffer(bufferName);
-//   if (buffer==NULL)
-//     this->internalMessage("Could not find buffer "+bufferName);
-//   else
-//     addOutput(messageType, typeLabel, output, messageFormat, "", cbt1, 0, buffer);
-// }
 
 void Stump::clearOutputs()
 {
@@ -181,8 +149,8 @@ void Stump::addOutput(std::string messageType, std::string typeLabel, MessageFor
 {
   if (buffer==NULL)
     {
-      // DEVOLVER ERROR
-      //      buffer = createBuffer(bufferSize);
+      internalMessage("buffer can't be null");
+      return;
     }
   
   messageTypes[messageType].push_back(new MessageOutput(// output, 
@@ -365,6 +333,7 @@ void Stump::outputBuffer(MessageOutput &output, bool flush)
 	  break;
 	}
 
+      // buffers debug
       // for (unsigned i=0; i<output.buffer->buffer.size(); ++i)
       // 	{
       // 	  std::cout << output.buffer->buffer[i] << std::endl;
@@ -372,19 +341,6 @@ void Stump::outputBuffer(MessageOutput &output, bool flush)
       output.buffer->buffer.clear();
       output.buffer->lastMessage="";	// Avoid log repeating after flush
     }
-  // switch (output.type)
-  //   {
-  //   case STDOUT:
-  //     std::cout << msg << std::endl;
-  //     break;
-  //   case STDERR:
-  //     std::cerr << msg << std::endl;
-  //     break;
-  //     // case file
-  //     // case callback
-  //   default:
-  //     std::cerr << "Stump: Unexpected output def" << std::endl; // You shouldn't see this message
-  //   }
 }
 
 void Stump::outputBufferOStream(std::ostream &os, const Stump::MessageBuffer *output)
