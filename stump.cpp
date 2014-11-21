@@ -8,12 +8,21 @@
 * @author Gaspar Fernández <blakeyed@totaki.com>
 * @version
 * @date 12 abr 2014
+* Changelog:
+*  - 20140918 : Enable and disable logs
+*  - 20141105 : Prevent logging empty strings
+*  - 20141118 : finished stream operator to log with <<
+*               comments cleanup
+*  - 20141120 : fixed bug that mixes streams output when inserting many 
+*               streams from several threads at a time.
+*  - 20141121 : fixed bug that aborts or segfaults when writing with streams 
+*               from several threads. New ostreamDataMutex.
+*
 * To-do:
 *  - Clear one sigle output
 *  - Clear_buffer must check if the buffers are not being used
 *  - Clear_buffers must free buffers
 *  - Clear one single user
-*  - Check working message type existence when using manipulator logtype
 *
 *************************************************************/
 
@@ -35,6 +44,9 @@ Stump::Stump()
   _internalMessages=true;
   workingMessageType="";
   __MUTEX_INIT(ostreamMutex);
+  __MUTEX_INIT(ostreamDataMutex);
+  streamBufferMax = 1024;
+  streamBufferCropMsg = "[CROPPED]";
   // __MUTEX_INIT(writingMutex);
   initialize();
 }

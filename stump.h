@@ -20,23 +20,31 @@
 /* What does C++11 do different?  */
 #ifdef __ITS_CXX11
   #include <mutex>
-
+  #include <thread>
   /* #warning "C++11 support not implemented yet" */
 
   #ifndef __MUTEX_T
-    #define __MUTEX_T std::mutex
+#define __MUTEX_T std::mutex
   #endif
 
   #ifndef __MUTEX_LOCK
-    #define __MUTEX_LOCK(mutex) mutex.lock()
+#define __MUTEX_LOCK(_mutex) _mutex.lock()
   #endif
 
   #ifndef __MUTEX_UNLOCK
-    #define __MUTEX_UNLOCK(mutex) mutex.unlock()
+#define __MUTEX_UNLOCK(_mutex) _mutex.unlock()
   #endif
 
   #ifndef __MUTEX_INIT
-    #define __MUTEX_INIT(mutex) 
+    #define __MUTEX_INIT(_mutex) 
+  #endif
+
+  #ifndef __THREAD_T
+    #define __THREAD_T std::thread::id
+  #endif
+
+  #ifndef __F_THREAD_ID
+    #define __F_THREAD_ID() std::this_thread::get_id()
   #endif
 
   using std::lock_guard;
@@ -50,15 +58,23 @@
   #endif
 
   #ifndef __MUTEX_LOCK
-    #define __MUTEX_LOCK(mutex) pthread_mutex_lock(&mutex)
+#define __MUTEX_LOCK(_mutex)  pthread_mutex_lock(&_mutex)
   #endif
 
   #ifndef __MUTEX_UNLOCK
-    #define __MUTEX_UNLOCK(mutex) pthread_mutex_unlock(&mutex)
+#define __MUTEX_UNLOCK(_mutex)  pthread_mutex_unlock(&_mutex)
   #endif
 
   #ifndef __MUTEX_INIT
-    #define __MUTEX_INIT(mutex) pthread_mutex_init(&mutex, NULL);
+    #define __MUTEX_INIT(_mutex) pthread_mutex_init(&_mutex, NULL)
+  #endif
+
+  #ifndef __THREAD_T
+    #define __THREAD_T pthread_t
+  #endif
+
+  #ifndef __F_THREAD_ID
+    #define __F_THREAD_ID() pthread_self()
   #endif
 
 #endif
@@ -165,12 +181,33 @@ class Stump
   template <typename T>
     Stump& operator<<(const T& x)
     {
-      if (currentLog.tellp()==0) /* Start logging */
+      __MUTEX_LOCK(ostreamDataMutex);
+      bool cond = ( (currentLog.tellp()==0) || (streamingThread != __F_THREAD_ID()) )/* Start logging */;
+      __MUTEX_UNLOCK(ostreamDataMutex);
+
+      if (cond)
 	{
 	  __MUTEX_LOCK(ostreamMutex);
+
+	  /* Must store thread id, because several threads may stream logs at the same time. To avoid mixing data */
+	  __MUTEX_LOCK(ostreamDataMutex);
+	  streamingThread = __F_THREAD_ID();
+	  __MUTEX_UNLOCK(ostreamDataMutex);
 	}
 
+      /* Adds stream to current log stream buffer */
+      __MUTEX_LOCK(ostreamDataMutex);
       currentLog << x;
+      long currentSize = currentLog.tellp();
+      __MUTEX_UNLOCK(ostreamDataMutex);
+      /* Checks current log stream buffer size. If 0 (nothing to write), if >=streamBufferMax (we must cut) */
+      if (currentSize==0)
+	{
+	  __MUTEX_UNLOCK(ostreamMutex);
+	}
+      else if (currentSize>=streamBufferMax)
+	
+	(*this)<<Stump::crop<<Stump::endl;
 
       return *this;
     }
@@ -181,10 +218,24 @@ class Stump
         return manipulator(*this);
     }
 
+  static Stump& crop(Stump& stump)
+  {
+    __MUTEX_LOCK(stump.ostreamDataMutex);
+    stump.currentLog << stump.streamBufferCropMsg;
+    __MUTEX_UNLOCK(stump.ostreamDataMutex);
+
+    return stump;
+  }
+
   static Stump& endl(Stump& stump)
   {
     stump.log(stump.currentLog.str(), stump.workingMessageType);
+
+    /* Cleanup currentlog */
+    __MUTEX_LOCK(stump.ostreamDataMutex);
     stump.currentLog.str("");
+    __MUTEX_UNLOCK(stump.ostreamDataMutex);
+
     __MUTEX_UNLOCK(stump.ostreamMutex);
     return stump;
   }
@@ -200,7 +251,9 @@ class Stump
     {
       // call the function, but we cannot return it's value
       if (manip == (ostream_manipulator) std::endl)
-	(*this)<<Stump::endl;
+	{
+	  (*this)<<Stump::endl;
+	}
       else
 	currentLog<<manip;
 
@@ -235,6 +288,26 @@ class Stump
     this->workingMessageType=wtype;
   }
 
+  void setStreamBufferMax(long val)
+  {
+    streamBufferMax = val;
+  }
+
+  long getStreamBufferMax()
+  {
+    return streamBufferMax;
+  }
+
+  void setStreamBufferCropMsg(std::string msg)
+  {
+    streamBufferCropMsg = msg;
+  }
+
+  std::string getStreamBufferCropMsg()
+    {
+      return streamBufferCropMsg;
+    }
+
   int totalMessageTypes()
   {
     return messageTypes.size();
@@ -258,14 +331,7 @@ class Stump
 
   struct MessageOutput
   {
-    /* OutputType output; */
-    /* std::string file;		/\* If apply *\/ */
-    /* TCallbackType1 cbt1; */
-
     MessageFormat messageFormat;
-    /* std::string logFormat; */
-    /* std::string dateFormat; */
-    /* std::string repeatLogFormat; */
     std::string typeLabel;
     MessageBuffer *buffer;
     bool enabled;
@@ -273,12 +339,7 @@ class Stump
     /* output(output),  */
       typeLabel(typeLabel), 
       messageFormat(messageFormat),
-      /* logFormat(logFormat),  */
-      /* dateFormat(dateFormat),  */
-      /* file(file),  */
-      /* cbt1(cbt1), */
-      /* repeatLogFormat(repeatLogFormat),  */
-      buffer(buffer)/* , bufferSize(bufferSize) */
+      buffer(buffer)
     {
       enabled=true;
     }
@@ -312,15 +373,15 @@ class Stump
   void outputBufferOStream(std::ostream &os, const Stump::MessageBuffer *output);
   void outputBufferFile(const Stump::MessageBuffer *output);
   std::string strReplaceMap(std::string source, std::map<std::string,std::string>strMap, int offset=0, int times=0);
+
+  /* mutex and streaming thread */
   __MUTEX_T ostreamMutex;
+  __MUTEX_T ostreamDataMutex;
+  __THREAD_T streamingThread;
   std::stringstream currentLog;
+  long streamBufferMax;
+  std::string streamBufferCropMsg;
 };
-
-/* static inline std::ostream &operator<<( std::ostream &os, const Stump &v ){ */
-/*   std::cout << "METO: \""<<os<<"\""<<std::endl; */
-/*   return os; */
-/* } */
-
 
 #endif /* _STUMP_H */
 
