@@ -164,6 +164,10 @@ class Stump
   void clearBuffers();
   void disableAll();
   void enableAll();
+  void enable(std::string messageType);
+  void disable(std::string messageType);
+  void setStatus(std::string messageType, bool enabled);
+
   MessageBuffer *createBuffer(std::ostream &os, int bufferSize);
   MessageBuffer *createBuffer(std::ostream &os, std::string bufferName, int bufferSize);
   MessageBuffer *createBuffer(std::string file, int bufferSize);

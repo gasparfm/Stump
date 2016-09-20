@@ -9,6 +9,7 @@
 * @version
 * @date 12 abr 2014
 * Changelog:
+*  - 20160519 : Disable individual logs
 *  - 20140918 : Enable and disable logs
 *  - 20141105 : Prevent logging empty strings
 *  - 20141118 : finished stream operator to log with <<
@@ -100,6 +101,39 @@ void Stump::enableAll()
 	(*j)->enabled=true;
     }
 }
+
+void Stump::disable(std::string messageType)
+{
+  std::map<std::string, std::vector<MessageOutput*> >::iterator l = messageTypes.find(messageType);
+  if (l == messageTypes.end())
+    return;
+
+  for (std::vector<MessageOutput*>::iterator j = l->second.begin(); j != l->second.end(); ++j)
+    {
+      (*j)->enabled=false;
+    }
+}
+
+void Stump::enable(std::string messageType)
+{
+  std::map<std::string, std::vector<MessageOutput*> >::iterator l = messageTypes.find(messageType);
+  if (l == messageTypes.end())
+    return;
+
+  for (std::vector<MessageOutput*>::iterator j = l->second.begin(); j != l->second.end(); ++j)
+    {
+      (*j)->enabled=true;
+    }
+}
+
+void Stump::setStatus(std::string messageType, bool enabled)
+{
+  if (enabled)
+    enable(messageType);
+  else
+    disable(messageType);
+}
+
 
 Stump::MessageBuffer *Stump::createBuffer(std::ostream &os, int bufferSize)
 {
